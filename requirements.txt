@@ -1,0 +1,13 @@
+mcp
+
+langchain
+
+langgraph
+
+langchain-openai
+
+langchain-mcp-adapters
+
+python-dotenv
+
+requests
