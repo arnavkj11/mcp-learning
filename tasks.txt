@@ -1,0 +1,3 @@
+Draft 2–3 motivational nudge email templates for A/B testing.
+Prototype a visual progress tracker for module pages by next week.
+Design a lightweight “quick recap” section before quizzes to test if it improves retention.

@@ -1,0 +1,29 @@
+Dear Intern,
+
+I hope this message finds you well. As part of our ongoing projects, I would like to assign you the following tasks that are crucial for our current objectives:
+
+1. **Design a Lightweight “Quick Recap” Section Before Quizzes**:
+   - Objective: To test if the addition of a quick recap section before quizzes improves retention rates.
+   - Steps:
+     - Brainstorm and sketch out the design.
+     - Create a simple prototype or outline.
+     - Finalize the design and document the process.
+
+2. **Prototype a Visual Progress Tracker for Module Pages**:
+   - Objective: To create a visual progress tracker for module pages to enhance user experience.
+   - Steps:
+     - Gather ideas and sketch the layout.
+     - Create a basic prototype using a design tool or paper.
+     - Refine the prototype and prepare for feedback.
+
+3. **Draft 2–3 Motivational Nudge Email Templates for A/B Testing**:
+   - Objective: To draft email templates for A/B testing to motivate learners to continue their courses.
+   - Steps:
+     - Outline the content and structure of the emails.
+     - Write the email content for each template.
+     - Review and make necessary adjustments.
+
+Please feel free to reach out if you have any questions or need further clarification on these tasks. Your contributions to these assignments are highly valued, and I look forward to seeing your creative solutions.
+
+Best regards,
+[Your Name]
