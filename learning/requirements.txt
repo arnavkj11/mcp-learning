@@ -18,4 +18,10 @@ langchain-community
 
 langchain-chroma
 
+openai
+
+wikipedia
+
+gradio
+
 
