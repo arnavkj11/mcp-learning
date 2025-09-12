@@ -1,6 +1,7 @@
 import os
 import requests
 from dotenv import load_dotenv
+from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 # Load environment variables from .env file
@@ -23,6 +24,17 @@ def compare_weather_prompt(location_a: str, location_b: str) -> str:
     3.  Instead, synthesize the information into a concise summary. Your final response should highlight the key differences, focusing on temperature, the general conditions (e.g., 'sunny' vs 'rainy'), and wind speed.
     4.  Present the comparison in a structured format, like a markdown table or a clear bulleted list, to make it easy for the user to understand at a glance.
     """
+
+@mcp.resource("file://delivery_log")
+def delivery_log() -> list[str]:
+    try:
+        log_file = Path("delivery_log.txt")
+        if not log_file.exists():
+            return ["Error: File not found on the server"]
+
+        return log_file.read_text(encoding="utf-8").strip().splitlines()
+    except Exception as e:
+        return [f"Error reading log file: {e}"]
 
 @mcp.tool()
 def get_weather(location: str) -> dict:
@@ -73,4 +85,5 @@ def get_weather(location: str) -> dict:
         return {"error": f"Data processing error: {e}"}
     
 if __name__ == "__main__":
+    print("Starting Weather MCP Server...")
     mcp.run(transport="stdio")
