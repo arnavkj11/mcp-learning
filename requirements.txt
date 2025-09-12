@@ -11,3 +11,11 @@ langchain-mcp-adapters
 python-dotenv
 
 requests
+
+chromadb
+
+langchain-community
+
+langchain-chroma
+
+

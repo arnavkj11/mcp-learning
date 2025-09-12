@@ -21,24 +21,30 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_mcp_adapters.tools import load_mcp_tools
 from langchain_mcp_adapters.client import MultiServerMCPClient
 
-server_configs = {
-    "weather": {
-        "command": "python",
-        "args": ["weather_server.py"],
-        "transport": "stdio"
-    },
-    "tasks": {
-        "command": "python",
-        "args": ["task_server.py"],
-        "transport": "stdio"
-    }
-}
+# server_configs = {
+#     "weather": {
+#         "command": "python",
+#         "args": ["weather_server.py"],
+#         "transport": "stdio"
+#     },
+#     "tasks": {
+#         "command": "python",
+#         "args": ["task_server.py"],
+#         "transport": "stdio"
+#     }
+# }
+
+server_params = StdioServerParameters(
+    command="python",
+    args=["rag_server.py"]
+)
 
 class State(TypedDict):
     messages: Annotated[List[AnyMessage], add_messages]
 
-def create_graph(tools: list):
-
+async def create_graph(session):
+    tools = await load_mcp_tools(session)
+    
     llm = ChatOpenAI(
         model="gpt-3.5-turbo",
         temperature=0,
@@ -47,7 +53,7 @@ def create_graph(tools: list):
     llm_with_tools = llm.bind_tools(tools)
 
     prompt_template = ChatPromptTemplate.from_messages([
-        ("system", "You are a helpful assistant. You have access to tools for checking the weather and managing a to-do list. Use the tools when necessary based on the user's request."),
+        ("system", "You are a helpful RAG assistant. Your role is to answer questions using the content of documents provided by the user. When a user gives you a file path, use your tool to ingest it into your memory. When they ask a question, use your search tool to find the relevant context within the ingested documents and use that context to form a clear answer."),
         MessagesPlaceholder("messages")
     ])
 
@@ -173,216 +179,168 @@ def create_graph(tools: list):
 #         print(f"Error handling resources: {e}")
 #         return None
 
-async def list_all_prompts(client: MultiServerMCPClient, server_configs: dict): 
-    print("\nAvailable Prompts from all servers:")
-    print("-----------------------------------")
+# async def list_all_prompts(client: MultiServerMCPClient, server_configs: dict): 
+#     print("\nAvailable Prompts from all servers:")
+#     print("-----------------------------------")
     
-    any_prompts_found = False
+#     any_prompts_found = False
 
-    for server_name in server_configs.keys():
-        try:
-            async with client.session(server_name) as session:
-                prompt_response = await session.list_prompts()
+#     for server_name in server_configs.keys():
+#         try:
+#             async with client.session(server_name) as session:
+#                 prompt_response = await session.list_prompts()
 
-                if prompt_response and prompt_response.prompts:
-                    any_prompts_found = True
-                    print(f"\nServer: {server_name}")
-                    for p in prompt_response.prompts:
-                        print(f"  Prompt: {p.name}")
-                        if p.arguments:
-                            arg_list = [arg.name for arg in p.arguments]
-                            print(f"    Arguments: {', '.join(arg_list)}")
-                        else:
-                            print("    Arguments: None")
-        except Exception as e:
-            print(f"Error listing prompts from server '{server_name}': {e}")
+#                 if prompt_response and prompt_response.prompts:
+#                     any_prompts_found = True
+#                     print(f"\nServer: {server_name}")
+#                     for p in prompt_response.prompts:
+#                         print(f"  Prompt: {p.name}")
+#                         if p.arguments:
+#                             arg_list = [arg.name for arg in p.arguments]
+#                             print(f"    Arguments: {', '.join(arg_list)}")
+#                         else:
+#                             print("    Arguments: None")
+#         except Exception as e:
+#             print(f"Error listing prompts from server '{server_name}': {e}")
     
-        print("\nUse: /prompt <server_name> <prompt_name> \"arg1\" \"arg2\" ...")
-        print("-----------------------------------")
-        if not any_prompts_found:
-            print("\nNo prompts were found on any connected servers.")
+#         print("\nUse: /prompt <server_name> <prompt_name> \"arg1\" \"arg2\" ...")
+#         print("-----------------------------------")
+#         if not any_prompts_found:
+#             print("\nNo prompts were found on any connected servers.")
 
-async def handle_prompt_invocation(client: MultiServerMCPClient, command: str) -> str | None:
-    try:
-        parts = shlex.split(command.strip())
-        if len(parts) < 3:
-            print("Usage: /prompt <server_name> <prompt_name> [arg1 arg2 ...]")
-            return None
+# async def handle_prompt_invocation(client: MultiServerMCPClient, command: str) -> str | None:
+#     try:
+#         parts = shlex.split(command.strip())
+#         if len(parts) < 3:
+#             print("Usage: /prompt <server_name> <prompt_name> [arg1 arg2 ...]")
+#             return None
         
-        server_name = parts[1]
-        prompt_name = parts[2]
-        user_args = parts[3:]
+#         server_name = parts[1]
+#         prompt_name = parts[2]
+#         user_args = parts[3:]
 
-        if server_name not in server_configs:
-            print(f"\nError: Server '{server_name}' is not recognized.")
-            return None
+#         if server_name not in server_configs:
+#             print(f"\nError: Server '{server_name}' is not recognized.")
+#             return None
 
-        prompt_def = None
-        async with client.session(server_name) as session:
-            prompt_def_response = await session.list_prompts()
-            if not prompt_def_response or not prompt_def_response.prompts:
-                print(f"\nError: Could not retrieve any prompts from the server '{server_name}'.")
-                return None
+#         prompt_def = None
+#         async with client.session(server_name) as session:
+#             prompt_def_response = await session.list_prompts()
+#             if not prompt_def_response or not prompt_def_response.prompts:
+#                 print(f"\nError: Could not retrieve any prompts from the server '{server_name}'.")
+#                 return None
             
-            prompt_def = next((p for p in prompt_def_response.prompts if p.name == prompt_name), None)
-            if not prompt_def:
-                print(f"\nError: Prompt '{prompt_name}' not found on server '{server_name}'.")
-                return None
+#             prompt_def = next((p for p in prompt_def_response.prompts if p.name == prompt_name), None)
+#             if not prompt_def:
+#                 print(f"\nError: Prompt '{prompt_name}' not found on server '{server_name}'.")
+#                 return None
 
-            if len(user_args) != len(prompt_def.arguments):
-                expected_args = [arg.name for arg in prompt_def.arguments]
-                print(f"\nError: Invalid number of arguments for prompt '{prompt_name}'.")
-                print(f"Expected {len(expected_args)} arguments: {', '.join(expected_args)}")
-                return None
+#             if len(user_args) != len(prompt_def.arguments):
+#                 expected_args = [arg.name for arg in prompt_def.arguments]
+#                 print(f"\nError: Invalid number of arguments for prompt '{prompt_name}'.")
+#                 print(f"Expected {len(expected_args)} arguments: {', '.join(expected_args)}")
+#                 return None
             
-            arg_dict = {arg.name: val for arg, val in zip(prompt_def.arguments, user_args)}
+#             arg_dict = {arg.name: val for arg, val in zip(prompt_def.arguments, user_args)}
 
-            prompt_messages = await client.get_prompt(
-                server_name=server_name,
-                prompt_name=prompt_name,
-                arguments=arg_dict
-            )
-            print("\n--- Prompt loaded successfully. Preparing to execute... ---")
-            prompt_text = prompt_messages[0].content
+#             prompt_messages = await client.get_prompt(
+#                 server_name=server_name,
+#                 prompt_name=prompt_name,
+#                 arguments=arg_dict
+#             )
+#             print("\n--- Prompt loaded successfully. Preparing to execute... ---")
+#             prompt_text = prompt_messages[0].content
 
-            return prompt_text
+#             return prompt_text
         
-    except Exception as e:
-            print(f"Error handling prompt invocation: {e}")
-            return None
+#     except Exception as e:
+#             print(f"Error handling prompt invocation: {e}")
+#             return None
 
-async def list_all_resources(client: MultiServerMCPClient, server_configs: dict):
-    print("\nAvailable Resources from all servers:")
-    print("-------------------------------------")
+# async def list_all_resources(client: MultiServerMCPClient, server_configs: dict):
+#     print("\nAvailable Resources from all servers:")
+#     print("-------------------------------------")
 
-    any_resources_found = False
+#     any_resources_found = False
 
-    for server_name in server_configs.keys():
-        try:
-            async with client.session(server_name) as session:
-                resource_response = await session.list_resources()
-                if resource_response and resource_response.resources:
-                    any_resources_found = True
-                    print(f"\n--- Server: '{server_name}' ---")
-                    for r in resource_response.resources:
-                        print(f"  Resource URI: {r.uri}")
-                        if r.description:
-                            print(f"    Description: {r.description}")
+#     for server_name in server_configs.keys():
+#         try:
+#             async with client.session(server_name) as session:
+#                 resource_response = await session.list_resources()
+#                 if resource_response and resource_response.resources:
+#                     any_resources_found = True
+#                     print(f"\n--- Server: '{server_name}' ---")
+#                     for r in resource_response.resources:
+#                         print(f"  Resource URI: {r.uri}")
+#                         if r.description:
+#                             print(f"    Description: {r.description}")
 
-        except Exception as e:
-            print(f"Error listing resources from server '{server_name}': {e}")
+#         except Exception as e:
+#             print(f"Error listing resources from server '{server_name}': {e}")
 
-    print("\nUse: /resource <server_name> <resource_uri>")
-    print("-----------------------------------")     
+#     print("\nUse: /resource <server_name> <resource_uri>")
+#     print("-----------------------------------")     
 
-    if not any_resources_found:
-        print("\nNo resources were found on any connected servers.")
+#     if not any_resources_found:
+#         print("\nNo resources were found on any connected servers.")
 
-async def handle_resource_invocation(client: MultiServerMCPClient, command: str) -> str | None:
-    try:
-        parts = shlex.split(command.strip())
-        if len(parts) != 3:
-            print("Usage: /resource <server_name> <resource_uri>")
-            return None
+# async def handle_resource_invocation(client: MultiServerMCPClient, command: str) -> str | None:
+#     try:
+#         parts = shlex.split(command.strip())
+#         if len(parts) != 3:
+#             print("Usage: /resource <server_name> <resource_uri>")
+#             return None
 
-        server_name = parts[1]
-        resource_uri = parts[2]
+#         server_name = parts[1]
+#         resource_uri = parts[2]
 
-        print(f"\n--- Fetching resource '{resource_uri}' from server '{server_name}'... ---")
+#         print(f"\n--- Fetching resource '{resource_uri}' from server '{server_name}'... ---")
 
-        blobs = await client.get_resources(server_name=server_name, uris=[resource_uri])
+#         blobs = await client.get_resources(server_name=server_name, uris=[resource_uri])
 
-        if not blobs:
-            print("Error: Resource not found.")
-            return None
+#         if not blobs:
+#             print("Error: Resource not found.")
+#             return None
 
-        resource_content = blobs[0].as_string()
+#         resource_content = blobs[0].as_string()
 
-        return resource_content
+#         return resource_content
     
-    except Exception as e:
-        print(f"Error handling resource invocation: {e}")
-        return None
+#     except Exception as e:
+#         print(f"Error handling resource invocation: {e}")
+#         return None
 
 # entry point
 async def main():
-    client = MultiServerMCPClient(server_configs)
+    async with stdio_client(server_params) as (read, write):
+        async with ClientSession(read, write) as session:
+            await session.initialize()
     
-    all_tools = await client.get_tools()
-    
-    agent = create_graph(all_tools)
+            agent = create_graph(session)
 
-    print("MCP Agent is ready (Connected to weather and task servers).")
-    print("Type a question, or use one of the following commands:")
-    print("  /prompts                                       - to list available prompts")
-    print("  /prompt <server_name> <prompt_name> \"args\"   - to run a specific prompt") 
+            print("""
+            Hello! I'm your document assistant.
 
-    message_to_agent = ""
+            To get started, tell me which document to read by providing its path, like:
+                Example: ingest_document /usercode/Guides/employee_handbook.txt
 
-    while True:
-        
-        user_input = input("\nYou: ").strip()
-        if user_input.lower() in {"exit", "quit", "q"}:
-            break
-        
-        if user_input.startswith("/prompts"):
-            await list_all_prompts(client, server_configs)
-            continue
+            Once it's loaded, I can answer any questions you have about it!
+            """)
 
-        elif user_input.startswith("/prompt"):
-            prompt_text = await handle_prompt_invocation(client, user_input)
-            if prompt_text:
-                message_to_agent = prompt_text
-            else:
-                continue
+            while True:
+                user_input = input("\nYou: ").strip()
+                if user_input.lower() in {"exit", "quit", "q"}:
+                    break
 
-        elif user_input.startswith("/resources"):
-            await list_all_resources(client, server_configs)
-            continue
-
-        elif user_input.startswith("/resource"):
-            resource_content = await handle_resource_invocation(client, user_input)
-
-            if resource_content:
-                action_prompt = input("Resource loaded. What should I do with this content? (Press Enter to just save to context)\n> ").strip()
-
-                # If user provides an action, combine it with the resource content
-                if action_prompt:
-                    message_to_agent = f"""
-                    CONTEXT from a loaded resource:
-                    ---
-                    {resource_content}
-                    ---
-                    TASK: {action_prompt}
-                    """
-
-                # If user provides no action, create a default message to save the context
-                else:
-                    print("No action specified. Adding resource content to conversation memory...")
-                    message_to_agent = f"""
-                    Please remember the following context for our conversation. Just acknowledge that you have received it.
-                    ---
-                    CONTEXT:
-                    {resource_content}
-                    ---
-                    """
-            else:
-                # If resource loading failed, loop back for next input
-                continue
-
-        else:
-            message_to_agent = user_input
-
-        if message_to_agent:
-            try:
-                response = await agent.ainvoke(
-                    {"messages": [("user", message_to_agent)]},
-                    config={"configurable": {"thread_id": "multi-server-session"}}
+                try:
+                    response = await agent.invoke(
+                        {"messages": user_input},
+                        # ---  Thread ID for clarity ---
+                        config={"configurable": {"thread_id": "weather-session"}}
                     )
-                print("AI:", response["messages"][-1].content)
-
-            except Exception as e:
-                print(f"Error: {e}")
+                    print("AI:", response["messages"][-1].content)
+                except Exception as e:
+                    print("Error:", e)
 
 if __name__ == "__main__":
     asyncio.run(main())
